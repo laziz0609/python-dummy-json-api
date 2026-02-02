@@ -1,25 +1,51 @@
+import json
+
 from uuid import uuid1
 
 import requests
 
 
-def download_file(file_url: str):
-    response = requests.get(file_url)
+def get_produts() -> list:
+    url = "https://dummyjson.com/products"
+    response = requests.get(url)
     
-    path = f'images/{uuid1()}.webp'
-    with open(path, 'wb') as f:
-        f.write(response.content)
+    if response.status_code != 200:
+        print("xato")
+    return response.json()["products"]
 
-    return path
 
+def download_file(data: dict) -> list:
+    images: list = data["images"]
+    
+    image_paths = []
+    for image in images:
+        path = f'images/{uuid1()}.webp'
+        with open(path, 'wb') as f:
+            f.write(requests.get(image).content)
+        
+        image_paths.append(path)
+
+    return image_paths
 
 def main() -> None:
-    url = 'https://cdn.dummyjson.com/product-images/beauty/essence-mascara-lash-princess/thumbnail.webp'
-    path = download_file(file_url=url)
+    products: list[dict[str, str | int]] = []
+    data = get_produts()
 
-    {
-        'name': '',
-        'image': path
-    }
+    for product in data:
+        image_paths = download_file(product)
+    
+        products.append({
+                "id":    product["id"],
+                "title": product["title"],
+                "description": product["description"],
+                "category": product["category"],
+                "price":    product["price"],
+                "image_paths": image_paths
+                })
 
+    json_path = "products.json"
+    
+    with open(json_path, "w") as json_file:
+        json_file.write(json.dumps(products, indent=4))
+         
 main()
